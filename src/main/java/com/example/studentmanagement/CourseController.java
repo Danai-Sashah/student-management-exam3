@@ -7,6 +7,36 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/*
+ * EXAM 3 GRADING NOTE (Section D, Q7 - POST/GET /api/courses, 3 marks total):
+ * - createCourse() reads the body as a raw Map instead of using the
+ *   CourseRequest DTO that already exists (dto/CourseRequest.java, with the
+ *   @NotBlank/@NotNull validation already on it). Using Map here means
+ *   @Valid can't apply at all, so Bean Validation never runs for courses
+ *   either, same root cause as in StudentController.
+ * - Because Course.department and Course.capacity are required here but
+ *   aren't in the spec's Course entity (see the note in Course.java), this
+ *   method now *requires* departmentId and capacity in the POST body. The
+ *   spec's example only has {code, title, credits}. Run the exam's own
+ *   Section F test script (step 2: "Create courses CS101 Intro to
+ *   Programming (15), DB201 Databases (15), BUS110 Accounting Basics (10)")
+ *   against this endpoint and it returns 400 Bad Request for every one of
+ *   those three requests, because none of them include capacity or
+ *   departmentId.
+ * - `code` uniqueness is never checked before save() (CourseRepository
+ *   already has existsByCode(String) - it's just never called). A duplicate
+ *   code hits the DB unique constraint and surfaces as an unhandled 500,
+ *   not the documented 409. The fix mirrors the department one:
+ *     if (courseRepository.existsByCode(code))
+ *         throw new DuplicateResourceException("Course " + code + " already exists");
+ * - new RuntimeException("Department not found...") on a missing
+ *   departmentId does NOT become a 404. GlobalExceptionHandler only listens
+ *   for ResourceNotFoundException, MethodArgumentNotValidException and
+ *   DuplicateResourceException - a plain RuntimeException isn't any of
+ *   those, so Spring's default error handling takes over and this becomes a
+ *   generic 500. Throwing `new ResourceNotFoundException(...)` instead would
+ *   make the handler you already wrote actually fire.
+ */
 @RestController
 @RequestMapping("/api/courses")
 public class CourseController {

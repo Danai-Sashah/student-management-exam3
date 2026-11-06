@@ -9,6 +9,23 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+/*
+ * EXAM 3 GRADING NOTE (Section A, Q2): the three handlers below are well
+ * built - correct status codes, correct {status, message} / field-error
+ * shapes, matching the spec exactly. The marks lost in Section A aren't a
+ * problem with this file; they're that the controllers never throw the
+ * exceptions this class is listening for. ResourceNotFoundException and
+ * DuplicateResourceException are each defined, handled perfectly here, and
+ * then never `throw`n anywhere in the whole src tree (grep for
+ * "throw new ResourceNotFoundException" / "throw new
+ * DuplicateResourceException" - both come back empty). Controllers use
+ * `new RuntimeException(...)` or `ResponseEntity.notFound().build()`
+ * instead, which either skips this class entirely (plain RuntimeException
+ * -> Spring's default 500) or returns 404 with an empty body instead of the
+ * documented {"status":404,"message":"..."} shape. The fix isn't here, it's
+ * swapping those `RuntimeException`/`notFound().build()` calls in the
+ * controllers for `throw new ResourceNotFoundException("...")`.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
